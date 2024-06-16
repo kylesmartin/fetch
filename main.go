@@ -15,43 +15,47 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
-	"image"
 	_ "image/png"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
-	rplatformer "github.com/hajimehoshi/ebiten/v2/examples/resources/images/platformer"
+	"github.com/kylesmartin/fetch/background"
 	"github.com/kylesmartin/fetch/object"
 	"github.com/kylesmartin/fetch/player"
 	"github.com/kylesmartin/fetch/settings"
 )
 
-var (
-	backgroundImage *ebiten.Image
-)
-
-func init() {
-	img, _, err := image.Decode(bytes.NewReader(rplatformer.Background_png))
-	if err != nil {
-		panic(err)
-	}
-	backgroundImage = ebiten.NewImageFromImage(img)
-
-}
-
 type Game struct {
-	player *player.Player
+	objects     []object.Object
+	initialized bool
 }
 
+func (g *Game) Init() {
+	background := &background.Background{}
+	player := &player.Player{
+		Position: object.Position{
+			X: 50 * settings.Unit,
+			Y: settings.GroundY * settings.Unit,
+		},
+	}
+
+	// Objects are stored in rendering order
+	g.objects = []object.Object{background, player}
+
+	g.initialized = true
+}
+
+// Update implements ebiten.Game
 func (g *Game) Update() error {
-	if g.player == nil {
-		g.player = &player.Player{
-			Position: object.Position{
-				X: 50 * settings.Unit,
-				Y: settings.GroundY * settings.Unit,
-			},
+	if !g.initialized {
+		g.Init()
+	}
+
+	for _, object := range g.objects {
+		err := object.Update()
+		if err != nil {
+			return err
 		}
 	}
 
@@ -60,17 +64,11 @@ func (g *Game) Update() error {
 
 // Draw implements ebiten.Game
 func (g *Game) Draw(screen *ebiten.Image) {
-	//
+	for _, object := range g.objects {
+		object.Draw(screen)
+	}
 
-	// Draws Background Image.
-	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Scale(0.5, 0.5)
-	screen.DrawImage(backgroundImage, op)
-
-	// Draws the Gopher.
-	g.player.Draw(screen)
-
-	// Show the message.
+	// Log instructions and ticks per second for debugging (TODO: Remove)
 	msg := fmt.Sprintf("TPS: %0.2f\nPress the space key to jump.", ebiten.ActualTPS())
 	ebitenutil.DebugPrint(screen, msg)
 }

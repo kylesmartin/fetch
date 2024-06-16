@@ -4,8 +4,7 @@ import (
 	"bytes"
 	"image"
 
-	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/inpututil"
+	"github.com/hajimehoshi/ebiten/v2"
 	rplatformer "github.com/hajimehoshi/ebiten/v2/examples/resources/images/platformer"
 	"github.com/kylesmartin/fetch/object"
 	"github.com/kylesmartin/fetch/settings"
@@ -39,26 +38,31 @@ func init() {
 }
 
 type Player struct {
-	Position object.Position
-	Velocity object.Velocity
+	Position   object.Position
+	Velocity   object.Velocity
+	IsJumpHeld bool
 }
 
 // Update implements Object.Update
-func (p *Player) Update() {
-	if ebiten.IsKeyPressed(ebiten.KeyA) || ebiten.IsKeyPressed(ebiten.KeyArrowLeft) {
-		p.Velocity.X = -4 * settings.Unit
-	} else if ebiten.IsKeyPressed(ebiten.KeyD) || ebiten.IsKeyPressed(ebiten.KeyArrowRight) {
-		p.Velocity.X = 4 * settings.Unit
+func (p *Player) Update() error {
+	if ebiten.IsKeyPressed(ebiten.KeyA) || ebiten.IsKeyPressed(ebiten.KeyLeft) {
+		p.Velocity.X = -8 * settings.Unit
+	} else if ebiten.IsKeyPressed(ebiten.KeyD) || ebiten.IsKeyPressed(ebiten.KeyRight) {
+		p.Velocity.X = 8 * settings.Unit
 	}
-	if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
+	if ebiten.IsKeyPressed(ebiten.KeySpace) && !p.IsJumpHeld {
 		p.tryJump()
+		p.IsJumpHeld = true
+	}
+	if !ebiten.IsKeyPressed(ebiten.KeySpace) {
+		p.IsJumpHeld = false
 	}
 
 	// Translate position according to velocity
 	p.Position.X += p.Velocity.X
 	p.Position.Y += p.Velocity.Y
 
-	groundLevel := settings.GroundY * settings.Unit
+	groundLevel := float64(settings.GroundY * settings.Unit)
 
 	// Reset position to ground level if below it
 	if p.Position.IsUnder(groundLevel) {
@@ -67,15 +71,27 @@ func (p *Player) Update() {
 
 	// Set horizontal velocity
 	if p.Velocity.X > 0 {
-		p.Velocity.X -= 4
+		p.Velocity.X -= 8
 	} else if p.Velocity.X < 0 {
-		p.Velocity.X += 4
+		p.Velocity.X += 8
 	}
 
-	// Add gravity effect
-	// TODO: Better understand what this is doing
-	if p.Velocity.Y < 20*settings.Unit {
-		p.Velocity.Y += 8
+	// Jump mechanics:
+	// - If going up while holding the jump, reduce the rate of velocity change
+	// - If going up without holding the jump, use the base rate of velocity change
+	// - If going down, increase the rate of velocity change
+	maxDownwardVelocity := float64(20 * settings.Unit)
+	baseVelocityChange := float64(12)
+	upwardsMultiplier := 0.75
+	downwardsMultiplier := 2.0
+	if p.Velocity.Y < maxDownwardVelocity {
+		if p.Velocity.Y < 0 && p.IsJumpHeld {
+			p.Velocity.Y += baseVelocityChange * upwardsMultiplier
+		} else if p.Velocity.Y < 0 && !p.IsJumpHeld {
+			p.Velocity.Y += baseVelocityChange
+		} else if p.Velocity.Y >= 0 {
+			p.Velocity.Y += baseVelocityChange * downwardsMultiplier
+		}
 	}
 
 	// Keep player within screen bounds
@@ -86,6 +102,8 @@ func (p *Player) Update() {
 	if p.Position.X > 14000 {
 		p.Position.X = 14000
 	}
+
+	return nil
 }
 
 // Draw implements Object.Draw
@@ -106,6 +124,6 @@ func (p *Player) Draw(screen *ebiten.Image) {
 
 func (p *Player) tryJump() {
 	if p.Position.Y == settings.GroundY*settings.Unit {
-		p.Velocity.Y = -10 * settings.Unit
+		p.Velocity.Y = -15 * settings.Unit
 	}
 }

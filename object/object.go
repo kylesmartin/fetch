@@ -1,6 +1,6 @@
 package object
 
-import "github.com/hajimehoshi/ebiten"
+import "github.com/hajimehoshi/ebiten/v2"
 
 type Object interface {
 	Update() error
@@ -8,16 +8,16 @@ type Object interface {
 }
 
 type Position struct {
-	X int
-	Y int
+	X float64
+	Y float64
 }
 
 // IsUnder makes comparing Y values more readable, as the y-axis is inverted
-func (p Position) IsUnder(y int) bool {
+func (p Position) IsUnder(y float64) bool {
 	return p.Y > y
 }
 
 type Velocity struct {
-	X int
-	Y int
+	X float64
+	Y float64
 }
