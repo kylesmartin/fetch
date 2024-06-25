@@ -21,14 +21,13 @@ func init() {
 	backgroundImage = ebiten.NewImageFromImage(img)
 }
 
+// Background is the scene in which the game takes place
 type Background struct {
 	Position object.Position
 }
 
 // Update implements Object.Update
-func (p *Background) Update() error {
-	return nil
-}
+func (p *Background) Update() {}
 
 // Draw implements Object.Draw
 func (p *Background) Draw(screen *ebiten.Image) {

@@ -20,9 +20,10 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
-	"github.com/kylesmartin/fetch/background"
 	"github.com/kylesmartin/fetch/object"
-	"github.com/kylesmartin/fetch/player"
+	"github.com/kylesmartin/fetch/objects/background"
+	"github.com/kylesmartin/fetch/objects/player"
+	"github.com/kylesmartin/fetch/objects/tennis"
 	"github.com/kylesmartin/fetch/settings"
 )
 
@@ -39,9 +40,11 @@ func (g *Game) Init() {
 			Y: settings.GroundY * settings.Unit,
 		},
 	}
+	tennisBall := &tennis.Ball{}
+	tennisBall.Throw()
 
 	// Objects are stored in rendering order
-	g.objects = []object.Object{background, player}
+	g.objects = []object.Object{background, player, tennisBall}
 
 	g.initialized = true
 }
@@ -53,10 +56,7 @@ func (g *Game) Update() error {
 	}
 
 	for _, object := range g.objects {
-		err := object.Update()
-		if err != nil {
-			return err
-		}
+		object.Update()
 	}
 
 	return nil
